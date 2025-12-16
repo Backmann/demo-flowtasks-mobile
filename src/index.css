@@ -1,0 +1,14 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+  color: #e5e7eb;
+  background: radial-gradient(circle at top right, #0d111c, #080b12 60%, #05070c 100%);
+}
