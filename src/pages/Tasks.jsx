@@ -4,7 +4,7 @@ import TaskItem from '../components/TaskItem.jsx';
 import Modal from '../components/Modal.jsx';
 import AddTaskModal from '../components/AddTaskModal.jsx';
 import { tags } from '../data/mock.js';
-import { useTasks } from '../state/TasksContext.jsx';
+import { useTasks } from '../state/tasksContext.js';
 
 export default function Tasks() {
   const { state, toggleDone, addTask } = useTasks();

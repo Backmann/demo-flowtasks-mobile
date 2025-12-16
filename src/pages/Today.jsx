@@ -4,7 +4,7 @@ import { isToday } from '../utils/date.js';
 import TaskItem from '../components/TaskItem.jsx';
 import Modal from '../components/Modal.jsx';
 import AddTaskModal from '../components/AddTaskModal.jsx';
-import { useTasks } from '../state/TasksContext.jsx';
+import { useTasks } from '../state/tasksContext.js';
 
 export default function Today() {
   const { state, toggleDone, addTask } = useTasks();

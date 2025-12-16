@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
+import { useEffect, useMemo, useReducer } from 'react';
 import { tasks as seedTasks } from '../data/mock.js';
 import { loadState, saveState } from './storage.js';
-
-const TasksContext = createContext(null);
+import { TasksContext } from './tasksContext.js';
 
 const initialState = {
   tasks: seedTasks,
@@ -28,7 +27,6 @@ function reducer(state, action) {
 export function TasksProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // hydrate from localStorage
   useEffect(() => {
     const saved = loadState();
     if (saved && Array.isArray(saved.tasks)) {
@@ -36,7 +34,6 @@ export function TasksProvider({ children }) {
     }
   }, []);
 
-  // persist
   useEffect(() => {
     saveState(state);
   }, [state]);
@@ -52,8 +49,4 @@ export function TasksProvider({ children }) {
   return <TasksContext.Provider value={api}>{children}</TasksContext.Provider>;
 }
 
-export function useTasks() {
-  const ctx = useContext(TasksContext);
-  if (!ctx) throw new Error('useTasks must be used inside TasksProvider');
-  return ctx;
-}
+export default TasksProvider;

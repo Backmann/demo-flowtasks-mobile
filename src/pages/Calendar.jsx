@@ -1,13 +1,18 @@
-import { tasks } from '../data/mock.js';
+import { useMemo } from 'react';
 import { formatShort } from '../utils/date.js';
+import { useTasks } from '../state/tasksContext.js';
 
 export default function Calendar() {
-  const grouped = tasks.reduce((acc, t) => {
-    const key = formatShort(t.due);
-    acc[key] = acc[key] || [];
-    acc[key].push(t);
-    return acc;
-  }, {});
+  const { state } = useTasks();
+
+  const grouped = useMemo(() => {
+    return state.tasks.reduce((acc, t) => {
+      const key = formatShort(t.due);
+      acc[key] = acc[key] || [];
+      acc[key].push(t);
+      return acc;
+    }, {});
+  }, [state.tasks]);
 
   const keys = Object.keys(grouped);
 
@@ -29,7 +34,7 @@ export default function Calendar() {
                 <div key={t.id} className="cal-item">
                   <div className="strong">{t.title}</div>
                   <div className="muted">
-                    {t.tag} · {t.priority}
+                    {t.tag} · {t.priority} · {t.done ? 'Done' : 'Open'}
                   </div>
                 </div>
               ))}
