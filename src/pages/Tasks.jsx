@@ -1,27 +1,67 @@
-import { useMemo, useState } from 'react';
-import { tasks as seed } from '../data/mock.js';
+import { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import TaskItem from '../components/TaskItem.jsx';
 import Modal from '../components/Modal.jsx';
+import AddTaskModal from '../components/AddTaskModal.jsx';
+import { tags } from '../data/mock.js';
+import { useTasks } from '../state/TasksContext.jsx';
 
 export default function Tasks() {
-  const [items, setItems] = useState(seed);
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
+  const { state, toggleDone, addTask } = useTasks();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // deep link params
+  const tagParam = searchParams.get('tag') || 'All';
+  const qParam = searchParams.get('q') || '';
+
+  const [query, setQuery] = useState(qParam);
+  const [openTask, setOpenTask] = useState(false);
   const [active, setActive] = useState(null);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (t) => t.title.toLowerCase().includes(q) || t.tag.toLowerCase().includes(q)
-    );
-  }, [items, query]);
+  const [openAdd, setOpenAdd] = useState(false);
 
-  const toggle = (id) =>
-    setItems((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
-  const openTask = (task) => {
+  // keep local input in sync with URL (if user opens a deep link)
+  useEffect(() => {
+    setQuery(qParam);
+  }, [qParam]);
+
+  const filtered = useMemo(() => {
+    let list = state.tasks;
+
+    if (tagParam !== 'All') {
+      list = list.filter((t) => t.tag === tagParam);
+    }
+
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (t) => t.title.toLowerCase().includes(q) || t.tag.toLowerCase().includes(q)
+      );
+    }
+
+    return list;
+  }, [state.tasks, tagParam, query]);
+
+  const applyTag = (tag) => {
+    const next = new URLSearchParams(searchParams);
+    if (tag === 'All') next.delete('tag');
+    else next.set('tag', tag);
+    setSearchParams(next);
+  };
+
+  const applyQuery = (val) => {
+    setQuery(val);
+    const next = new URLSearchParams(searchParams);
+    const trimmed = val.trim();
+    if (!trimmed) next.delete('q');
+    else next.set('q', trimmed);
+    setSearchParams(next);
+  };
+
+  const openDetails = (task) => {
     setActive(task);
-    setOpen(true);
+    setOpenTask(true);
   };
 
   return (
@@ -29,24 +69,46 @@ export default function Tasks() {
       <div className="screen-head">
         <div>
           <div className="h1">Tasks</div>
-          <div className="muted">Search & manage</div>
+          <div className="muted">Deep links: /tasks?tag=Work&amp;q=react</div>
         </div>
+
+        <button className="btn-primary" onClick={() => setOpenAdd(true)}>
+          + Add
+        </button>
       </div>
 
       <input
         className="search"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => applyQuery(e.target.value)}
         placeholder="Search tasks..."
       />
 
-      <div className="list">
-        {filtered.map((t) => (
-          <TaskItem key={t.id} task={t} onToggle={toggle} onOpen={openTask} />
+      <div className="chips">
+        <button
+          className={'chip' + (tagParam === 'All' ? ' active' : '')}
+          onClick={() => applyTag('All')}
+        >
+          All
+        </button>
+        {tags.map((t) => (
+          <button
+            key={t}
+            className={'chip' + (tagParam === t ? ' active' : '')}
+            onClick={() => applyTag(t)}
+          >
+            {t}
+          </button>
         ))}
       </div>
 
-      <Modal open={open} title={active?.title ?? 'Task'} onClose={() => setOpen(false)}>
+      <div className="list">
+        {filtered.map((t) => (
+          <TaskItem key={t.id} task={t} onToggle={toggleDone} onOpen={openDetails} />
+        ))}
+      </div>
+
+      <Modal open={openTask} title={active?.title ?? 'Task'} onClose={() => setOpenTask(false)}>
         {active && (
           <div className="stack">
             <div className="row">
@@ -64,6 +126,13 @@ export default function Tasks() {
           </div>
         )}
       </Modal>
+
+      <AddTaskModal
+        open={openAdd}
+        onClose={() => setOpenAdd(false)}
+        onCreate={addTask}
+        initialTag={tagParam !== 'All' ? tagParam : undefined}
+      />
     </section>
   );
 }

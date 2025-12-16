@@ -1,24 +1,25 @@
 import { useMemo, useState } from 'react';
-import { tasks as seed, tags } from '../data/mock.js';
+import { tags } from '../data/mock.js';
 import { isToday } from '../utils/date.js';
 import TaskItem from '../components/TaskItem.jsx';
 import Modal from '../components/Modal.jsx';
+import AddTaskModal from '../components/AddTaskModal.jsx';
+import { useTasks } from '../state/TasksContext.jsx';
 
 export default function Today() {
-  const [items, setItems] = useState(seed);
+  const { state, toggleDone, addTask } = useTasks();
+
   const [activeTag, setActiveTag] = useState('All');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(null);
+  const [openAdd, setOpenAdd] = useState(false);
 
-  const today = useMemo(() => items.filter((t) => isToday(t.due)), [items]);
+  const today = useMemo(() => state.tasks.filter((t) => isToday(t.due)), [state.tasks]);
+
   const filtered = useMemo(() => {
-    const base = today;
-    if (activeTag === 'All') return base;
-    return base.filter((t) => t.tag === activeTag);
+    if (activeTag === 'All') return today;
+    return today.filter((t) => t.tag === activeTag);
   }, [today, activeTag]);
-
-  const toggle = (id) =>
-    setItems((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
 
   const openTask = (task) => {
     setActive(task);
@@ -32,7 +33,7 @@ export default function Today() {
           <div className="h1">Today</div>
           <div className="muted">Focus on what matters</div>
         </div>
-        <button className="btn-primary" onClick={() => alert('Demo: Add flow can be added later')}>
+        <button className="btn-primary" onClick={() => setOpenAdd(true)}>
           + Add
         </button>
       </div>
@@ -59,7 +60,9 @@ export default function Today() {
         {filtered.length === 0 ? (
           <div className="empty">No tasks for today.</div>
         ) : (
-          filtered.map((t) => <TaskItem key={t.id} task={t} onToggle={toggle} onOpen={openTask} />)
+          filtered.map((t) => (
+            <TaskItem key={t.id} task={t} onToggle={toggleDone} onOpen={openTask} />
+          ))
         )}
       </div>
 
@@ -78,13 +81,16 @@ export default function Today() {
               <span className="muted">Status</span>
               <span className="strong">{active.done ? 'Done' : 'Open'}</span>
             </div>
-            <div className="divider" />
-            <div className="muted">
-              Demo note: In a real mobile app, this screen includes subtasks, reminders, and sync.
-            </div>
           </div>
         )}
       </Modal>
+
+      <AddTaskModal
+        open={openAdd}
+        onClose={() => setOpenAdd(false)}
+        onCreate={addTask}
+        initialTag={activeTag !== 'All' ? activeTag : undefined}
+      />
     </section>
   );
 }
