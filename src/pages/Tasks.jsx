@@ -1,78 +1,52 @@
-import { useMemo, useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import TaskItem from '../components/TaskItem.jsx';
-import Modal from '../components/Modal.jsx';
+import { useMemo, useState } from 'react';
 import AddTaskModal from '../components/AddTaskModal.jsx';
+import TaskItem from '../components/TaskItem.jsx';
+import { useTasks } from '../state/TasksContext.jsx';
 import { tags } from '../data/mock.js';
-import { useTasks } from '../state/tasksContext.js';
 
 export default function Tasks() {
-  const { state, toggleDone, addTask } = useTasks();
+  const { tasks, addTask, toggleDone } = useTasks();
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [addOpen, setAddOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [tag, setTag] = useState('Work');
+  const [error, setError] = useState('');
 
-  // deep link params
-  const tagParam = searchParams.get('tag') || 'All';
-  const qParam = searchParams.get('q') || '';
+  const [query, setQuery] = useState('');
+  const [tagFilter, setTagFilter] = useState('All');
 
-  const [query, setQuery] = useState(qParam);
-  const [openTask, setOpenTask] = useState(false);
-  const [active, setActive] = useState(null);
+  const openAdd = () => {
+    setTitle('');
+    setError('');
+    setTag('Work');
+    setAddOpen(true);
+  };
 
-  const [openAdd, setOpenAdd] = useState(false);
+  const closeAdd = () => setAddOpen(false);
 
-  // keep local input in sync with URL (if user opens a deep link)
-  useEffect(() => {
-    setQuery(qParam);
-  }, [qParam]);
+  const handleCreate = (task) => {
+    addTask(task);
+  };
 
-  const filtered = useMemo(() => {
-    let list = state.tasks;
-
-    if (tagParam !== 'All') {
-      list = list.filter((t) => t.tag === tagParam);
-    }
-
+  const visible = useMemo(() => {
+    const list = Array.isArray(tasks) ? tasks : [];
     const q = query.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (t) => t.title.toLowerCase().includes(q) || t.tag.toLowerCase().includes(q)
-      );
-    }
 
-    return list;
-  }, [state.tasks, tagParam, query]);
-
-  const applyTag = (tag) => {
-    const next = new URLSearchParams(searchParams);
-    if (tag === 'All') next.delete('tag');
-    else next.set('tag', tag);
-    setSearchParams(next);
-  };
-
-  const applyQuery = (val) => {
-    setQuery(val);
-    const next = new URLSearchParams(searchParams);
-    const trimmed = val.trim();
-    if (!trimmed) next.delete('q');
-    else next.set('q', trimmed);
-    setSearchParams(next);
-  };
-
-  const openDetails = (task) => {
-    setActive(task);
-    setOpenTask(true);
-  };
+    return list.filter((t) => {
+      const okTag = tagFilter === 'All' ? true : t.tag === tagFilter;
+      const okText = !q ? true : String(t.title || '').toLowerCase().includes(q);
+      return okTag && okText;
+    });
+  }, [tasks, query, tagFilter]);
 
   return (
     <section className="screen">
       <div className="screen-head">
         <div>
           <div className="h1">Tasks</div>
-          <div className="muted">Deep links: /tasks?tag=Work&amp;q=react</div>
+          <div className="muted">Search and filter</div>
         </div>
-
-        <button className="btn-primary" onClick={() => setOpenAdd(true)}>
+        <button className="btn-primary" onClick={openAdd}>
           + Add
         </button>
       </div>
@@ -80,58 +54,53 @@ export default function Tasks() {
       <input
         className="search"
         value={query}
-        onChange={(e) => applyQuery(e.target.value)}
-        placeholder="Search tasks..."
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search tasks…"
       />
 
-      <div className="chips">
+      <div className="chips" aria-label="Tag filters">
         <button
-          className={'chip' + (tagParam === 'All' ? ' active' : '')}
-          onClick={() => applyTag('All')}
+          type="button"
+          className={'chip' + (tagFilter === 'All' ? ' active' : '')}
+          onClick={() => setTagFilter('All')}
         >
           All
         </button>
         {tags.map((t) => (
           <button
             key={t}
-            className={'chip' + (tagParam === t ? ' active' : '')}
-            onClick={() => applyTag(t)}
+            type="button"
+            className={'chip' + (tagFilter === t ? ' active' : '')}
+            onClick={() => setTagFilter(t)}
           >
             {t}
           </button>
         ))}
       </div>
 
-      <div className="list">
-        {filtered.map((t) => (
-          <TaskItem key={t.id} task={t} onToggle={toggleDone} onOpen={openDetails} />
-        ))}
-      </div>
-
-      <Modal open={openTask} title={active?.title ?? 'Task'} onClose={() => setOpenTask(false)}>
-        {active && (
-          <div className="stack">
-            <div className="row">
-              <span className="muted">Tag</span>
-              <span className="strong">{active.tag}</span>
-            </div>
-            <div className="row">
-              <span className="muted">Priority</span>
-              <span className={'prio ' + active.priority.toLowerCase()}>{active.priority}</span>
-            </div>
-            <div className="row">
-              <span className="muted">Status</span>
-              <span className="strong">{active.done ? 'Done' : 'Open'}</span>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {visible.length === 0 ? (
+        <div className="empty">
+          <div className="strong">No matches</div>
+          <div className="muted">Try changing your search or tag filter.</div>
+        </div>
+      ) : (
+        <div className="list">
+          {visible.map((t) => (
+            <TaskItem key={t.id} task={t} onToggle={toggleDone} />
+          ))}
+        </div>
+      )}
 
       <AddTaskModal
-        open={openAdd}
-        onClose={() => setOpenAdd(false)}
-        onCreate={addTask}
-        initialTag={tagParam !== 'All' ? tagParam : undefined}
+        open={addOpen}
+        onClose={closeAdd}
+        onCreate={handleCreate}
+        title={title}
+        setTitle={setTitle}
+        tag={tag}
+        setTag={setTag}
+        error={error}
+        setError={setError}
       />
     </section>
   );

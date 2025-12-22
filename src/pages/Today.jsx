@@ -1,96 +1,78 @@
-import { useMemo, useState } from 'react';
-import { tags } from '../data/mock.js';
-import { isToday } from '../utils/date.js';
+import { useMemo } from 'react';
 import TaskItem from '../components/TaskItem.jsx';
-import Modal from '../components/Modal.jsx';
-import AddTaskModal from '../components/AddTaskModal.jsx';
-import { useTasks } from '../state/tasksContext.js';
+import { useTasks } from '../state/TasksContext.jsx';
+import { isOverdue, isToday } from '../utils/date.js';
 
 export default function Today() {
-  const { state, toggleDone, addTask } = useTasks();
+  const { tasks, toggleDone } = useTasks();
 
-  const [activeTag, setActiveTag] = useState('All');
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(null);
-  const [openAdd, setOpenAdd] = useState(false);
+  const { todayTasks, overdueTasks, doneCount, openCount } = useMemo(() => {
+    const list = Array.isArray(tasks) ? tasks : [];
+    const todayList = list.filter((x) => isToday(x.due));
+    const overdueList = list.filter((x) => !x.done && isOverdue(x.due));
 
-  const today = useMemo(() => state.tasks.filter((t) => isToday(t.due)), [state.tasks]);
+    const done = todayList.filter((x) => x.done).length;
+    const open = Math.max(0, todayList.length - done);
 
-  const filtered = useMemo(() => {
-    if (activeTag === 'All') return today;
-    return today.filter((t) => t.tag === activeTag);
-  }, [today, activeTag]);
-
-  const openTask = (task) => {
-    setActive(task);
-    setOpen(true);
-  };
+    return { todayTasks: todayList, overdueTasks: overdueList, doneCount: done, openCount: open };
+  }, [tasks]);
 
   return (
     <section className="screen">
       <div className="screen-head">
         <div>
           <div className="h1">Today</div>
-          <div className="muted">Focus on what matters</div>
+          <div className="muted">
+            {openCount} open · {doneCount} done
+          </div>
         </div>
-        <button className="btn-primary" onClick={() => setOpenAdd(true)}>
-          + Add
-        </button>
+
+        <div className="chips" aria-label="Today summary">
+          <span className="chip active">Open {openCount}</span>
+          <span className="chip">Done {doneCount}</span>
+        </div>
       </div>
 
-      <div className="chips">
-        <button
-          className={'chip' + (activeTag === 'All' ? ' active' : '')}
-          onClick={() => setActiveTag('All')}
-        >
-          All
-        </button>
-        {tags.map((t) => (
-          <button
-            key={t}
-            className={'chip' + (activeTag === t ? ' active' : '')}
-            onClick={() => setActiveTag(t)}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      {overdueTasks.length > 0 && (
+        <div className="panel">
+          <div className="row">
+            <div>
+              <div className="strong">Overdue</div>
+              <div className="muted">Resolve these first</div>
+            </div>
+            <div className="mobile-chip">{overdueTasks.length}</div>
+          </div>
 
-      <div className="list">
-        {filtered.length === 0 ? (
-          <div className="empty">No tasks for today.</div>
+          <div className="list">
+            {overdueTasks.slice(0, 3).map((task) => (
+              <TaskItem key={task.id} task={task} onToggle={toggleDone} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="panel">
+        <div className="row">
+          <div>
+            <div className="strong">Today&apos;s tasks</div>
+            <div className="muted">Due today</div>
+          </div>
+          <div className="mobile-chip">{todayTasks.length}</div>
+        </div>
+
+        {todayTasks.length === 0 ? (
+          <div className="empty">
+            <div className="strong">No tasks for today</div>
+            <div className="muted">Add tasks in the Tasks tab.</div>
+          </div>
         ) : (
-          filtered.map((t) => (
-            <TaskItem key={t.id} task={t} onToggle={toggleDone} onOpen={openTask} />
-          ))
-        )}
-      </div>
-
-      <Modal open={open} title={active?.title ?? 'Task'} onClose={() => setOpen(false)}>
-        {active && (
-          <div className="stack">
-            <div className="row">
-              <span className="muted">Tag</span>
-              <span className="strong">{active.tag}</span>
-            </div>
-            <div className="row">
-              <span className="muted">Priority</span>
-              <span className={'prio ' + active.priority.toLowerCase()}>{active.priority}</span>
-            </div>
-            <div className="row">
-              <span className="muted">Status</span>
-              <span className="strong">{active.done ? 'Done' : 'Open'}</span>
-            </div>
+          <div className="list">
+            {todayTasks.map((task) => (
+              <TaskItem key={task.id} task={task} onToggle={toggleDone} />
+            ))}
           </div>
         )}
-      </Modal>
-
-      <AddTaskModal
-        open={openAdd}
-        onClose={() => setOpenAdd(false)}
-        onCreate={addTask}
-        initialTag={activeTag !== 'All' ? activeTag : undefined}
-      />
+      </div>
     </section>
   );
 }

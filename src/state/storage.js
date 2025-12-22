@@ -1,8 +1,6 @@
-const KEY = 'flowtasks:v1';
-
-export function loadState() {
+export function loadState(key) {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch {
@@ -10,9 +8,9 @@ export function loadState() {
   }
 }
 
-export function saveState(state) {
+export function saveState(key, value) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
     // ignore
   }

@@ -1,4 +1,4 @@
-export const tags = ['Work', 'Personal', 'Health', 'Finance', 'Learning'];
+export const tags = ['Work', 'Personal', 'Health', 'Finance', 'Study'];
 
 export const tasks = [
   {
@@ -57,3 +57,8 @@ function offset(days) {
   d.setHours(9, 0, 0, 0);
   return d.toISOString();
 }
+export const initialTasks = [
+  { id: 't1', title: 'Plan weekly priorities', tag: 'Work', priority: 'Medium', done: false },
+  { id: 't2', title: '30 min workout', tag: 'Health', priority: 'Low', done: false },
+  { id: 't3', title: 'Buy groceries', tag: 'Personal', priority: 'Medium', done: true },
+];

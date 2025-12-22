@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { formatShort } from '../utils/date.js';
-import { useTasks } from '../state/tasksContext.js';
+import { useTasks } from '../state/TasksContext.jsx';
 
 export default function Calendar() {
   const { state } = useTasks();
